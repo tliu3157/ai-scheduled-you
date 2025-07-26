@@ -3,6 +3,8 @@ import { ChatMessage, QuickAction } from "@/components/ChatMessage";
 import { CalendarView } from "@/components/CalendarView";
 import { SuggestedEvents } from "@/components/SuggestedEvents";
 import { ChatInput } from "@/components/ChatInput";
+import { TasksWidget } from "@/components/TasksWidget";
+import { CallHistoryWidget } from "@/components/CallHistoryWidget";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -21,15 +23,32 @@ const mockEvents = [
 const mockSuggestedEvents = [
   {
     id: '1',
-    title: 'Lunch',
-    time: '12:00 PM—1 PM',
-    location: 'Downtown',
+    title: 'AI Conference',
+    time: 'Apr 26 · 10 AM',
+    location: 'Convention Center',
+    description: 'Latest advances in artificial intelligence and machine learning',
+    whyInterested: 'Based on your interest in AI and scheduling automation',
+    registrationUrl: 'https://aiconf.example.com',
+    category: 'conference' as const,
   },
   {
     id: '2', 
-    title: 'Pick up dry cleaning',
-    time: '4:30—5:00 PM',
-    location: 'Main Street',
+    title: 'Yoga Workshop',
+    time: 'Apr 27 · 1:00 PM',
+    location: 'Wellness Studio',
+    description: 'Beginner-friendly yoga session focusing on stress relief',
+    whyInterested: 'Perfect for work-life balance and managing your busy schedule',
+    registrationUrl: 'https://yogastudio.example.com',
+    category: 'workshop' as const,
+  },
+  {
+    id: '3',
+    title: 'Networking Dinner',
+    time: 'Apr 28 · 7:00 PM',
+    location: 'Downtown Restaurant',
+    description: 'Connect with professionals in tech and business',
+    whyInterested: 'Great opportunity to expand your professional network',
+    category: 'networking' as const,
   },
 ];
 
@@ -54,13 +73,21 @@ const Index = () => {
     
     setMessages(prev => [...prev, newMessage]);
     
-    // Simulate AI response
+    // Simulate AI response for booking tasks/events
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
+      let aiResponseText = "I'll help you with that right away! Let me check your calendar and find the best time.";
+      
+      if (text.toLowerCase().includes('book') || text.toLowerCase().includes('schedule')) {
+        aiResponseText = "I'll handle that booking for you. Let me call them now and find the best available time slot.";
+      } else if (text.toLowerCase().includes('task')) {
+        aiResponseText = "I've added that to your task list. I can help you schedule time to complete it or book any related appointments.";
+      }
+      
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I'll help you with that right away! Let me check your calendar and find the best time.",
+        text: aiResponseText,
         isUser: false,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -85,9 +112,20 @@ const Index = () => {
           <h1 className="text-2xl font-bold text-foreground">Sense Plan</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-120px)]">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 h-[calc(100vh-120px)]">
+          {/* Left Sidebar */}
+          <div className="xl:col-span-1 space-y-6 order-2 xl:order-1">
+            {/* Tasks */}
+            <TasksWidget onCreateTask={handleSendMessage} />
+            
+            {/* Call History */}
+            <CallHistoryWidget onViewTranscript={(call) => {
+              handleSendMessage(`Show me the transcript for ${call.title}`);
+            }} />
+          </div>
+
           {/* Chat Section */}
-          <div className="lg:col-span-2">
+          <div className="xl:col-span-2 order-1 xl:order-2">
             <Card className="h-full flex flex-col shadow-soft">
               <CardContent className="flex-1 flex flex-col p-0">
                 {/* Chat Messages */}
@@ -123,22 +161,26 @@ const Index = () => {
                   {/* Quick Actions */}
                   {!isTyping && (
                     <div className="flex gap-2 justify-center">
-                      <QuickAction action="Sure" onAction={handleQuickAction} />
+                      <QuickAction action="Book it for me" onAction={handleQuickAction} />
+                      <QuickAction action="Show alternatives" onAction={() => handleSendMessage("Show me other options")} />
                     </div>
                   )}
                 </div>
 
                 {/* Chat Input */}
-                <ChatInput onSendMessage={handleSendMessage} />
+                <ChatInput 
+                  onSendMessage={handleSendMessage} 
+                  placeholder="Ask me to book appointments, schedule tasks, or find events..."
+                />
               </CardContent>
             </Card>
           </div>
 
           {/* Right Sidebar */}
-          <div className="space-y-6">
+          <div className="xl:col-span-1 space-y-6 order-3">
             {/* Calendar */}
             <div>
-              <h2 className="text-lg font-semibold mb-3 text-foreground">Appointments</h2>
+              <h2 className="text-lg font-semibold mb-3 text-foreground">Calendar</h2>
               <CalendarView 
                 events={mockEvents}
                 selectedDate={new Date()}
@@ -149,7 +191,7 @@ const Index = () => {
             <SuggestedEvents 
               events={mockSuggestedEvents}
               onEventSelect={(event) => {
-                handleSendMessage(`Add ${event.title} to my calendar for ${event.time}`);
+                handleSendMessage(`Book ${event.title} for ${event.time}`);
               }}
             />
           </div>
