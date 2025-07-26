@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Clock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Calendar, Clock, X } from "lucide-react";
 
 interface Task {
   id: string;
@@ -25,36 +26,87 @@ const mockTasks: Task[] = [
     description: 'Need to book cleaning appointment',
     dueDate: 'Tomorrow',
     priority: 'high',
-    completed: false
+    completed: true
   },
   {
     id: '2',
-    title: 'Book flight to NYC',
-    description: 'For business trip next month',
+    title: 'Complete project presentation',
+    description: 'Finish slides for quarterly review',
     dueDate: 'This week',
+    priority: 'high',
+    completed: true
+  },
+  {
+    id: '3',
+    title: 'Getting better at networking',
+    description: 'Improve professional networking skills',
+    dueDate: 'Next month',
     priority: 'medium',
     completed: false
   },
   {
-    id: '3',
-    title: 'Gym membership renewal',
-    description: 'Annual membership expires soon',
+    id: '4',
+    title: 'Learn new programming language',
+    description: 'Expand technical skills',
     priority: 'low',
-    completed: true
+    completed: false
+  },
+  {
+    id: '5',
+    title: 'Book flight to NYC',
+    description: 'For business trip next month',
+    dueDate: 'Today',
+    priority: 'high',
+    completed: false
   }
 ];
 
 export const TasksWidget = ({ onCreateTask }: TasksWidgetProps) => {
   const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [showAddInput, setShowAddInput] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
 
-  const openTasks = tasks.filter(task => !task.completed);
-  const closedTasks = tasks.filter(task => task.completed);
+  const getDueDateSort = (task: Task) => {
+    if (!task.dueDate) return 999; // Tasks without due dates go to the end
+    if (task.dueDate === 'Today') return 0;
+    if (task.dueDate === 'Tomorrow') return 1;
+    if (task.dueDate === 'This week') return 2;
+    if (task.dueDate === 'Next week') return 3;
+    if (task.dueDate === 'Next month') return 4;
+    return 5;
+  };
+
+  const openTasks = tasks.filter(task => !task.completed).sort((a, b) => getDueDateSort(a) - getDueDateSort(b));
+  const closedTasks = tasks.filter(task => task.completed).sort((a, b) => getDueDateSort(a) - getDueDateSort(b));
 
   const toggleTask = (taskId: string) => {
     setTasks(prev => prev.map(task =>
       task.id === taskId ? { ...task, completed: !task.completed } : task
     ));
+  };
+
+  const addTask = () => {
+    if (newTaskTitle.trim()) {
+      const newTask: Task = {
+        id: Date.now().toString(),
+        title: newTaskTitle.trim(),
+        priority: 'medium',
+        completed: false
+      };
+      setTasks(prev => [...prev, newTask]);
+      setNewTaskTitle("");
+      setShowAddInput(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      addTask();
+    } else if (e.key === 'Escape') {
+      setNewTaskTitle("");
+      setShowAddInput(false);
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -76,10 +128,10 @@ export const TasksWidget = ({ onCreateTask }: TasksWidgetProps) => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onCreateTask?.("Create a new task")}
+            onClick={() => setShowAddInput(!showAddInput)}
             className="h-8 w-8 p-0"
           >
-            <Plus className="h-4 w-4" />
+            {showAddInput ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
           </Button>
         </div>
         <div className="flex gap-2">
@@ -103,6 +155,21 @@ export const TasksWidget = ({ onCreateTask }: TasksWidgetProps) => {
       </CardHeader>
       
       <CardContent className="p-4 pt-0 space-y-3">
+        {showAddInput && (
+          <div className="flex gap-2 p-3 rounded-xl bg-event-bg">
+            <Input
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onKeyDown={handleKeyPress}
+              placeholder="Enter task title..."
+              className="flex-1 text-sm"
+              autoFocus
+            />
+            <Button size="sm" onClick={addTask} disabled={!newTaskTitle.trim()}>
+              Add
+            </Button>
+          </div>
+        )}
         {displayTasks.map(task => (
           <div
             key={task.id}

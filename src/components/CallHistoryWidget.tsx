@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Phone, Clock, Calendar } from "lucide-react";
+import { Phone, Clock, Calendar, ChevronDown, ChevronUp, X } from "lucide-react";
 
 interface CallRecord {
   id: string;
@@ -66,6 +67,9 @@ const mockCalls: CallRecord[] = [
 ];
 
 export const CallHistoryWidget = ({ onViewTranscript }: CallHistoryWidgetProps) => {
+  const [calls, setCalls] = useState<CallRecord[]>(mockCalls);
+  const [expandedCall, setExpandedCall] = useState<string | null>(null);
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-success text-success-foreground';
@@ -84,6 +88,14 @@ export const CallHistoryWidget = ({ onViewTranscript }: CallHistoryWidgetProps) 
     }
   };
 
+  const cancelCall = (callId: string) => {
+    setCalls(prev => prev.filter(call => call.id !== callId));
+  };
+
+  const toggleTranscript = (callId: string) => {
+    setExpandedCall(expandedCall === callId ? null : callId);
+  };
+
   return (
     <Card className="w-full shadow-soft">
       <CardHeader className="pb-4">
@@ -96,56 +108,75 @@ export const CallHistoryWidget = ({ onViewTranscript }: CallHistoryWidgetProps) 
       </CardHeader>
       
       <CardContent className="p-4 pt-0 space-y-3">
-        {mockCalls.map(call => (
-          <div
-            key={call.id}
-            className="flex items-center gap-3 p-3 rounded-xl bg-event-bg hover:bg-muted transition-colors"
-          >
-            <Avatar className="w-8 h-8 bg-primary flex-shrink-0">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
-                A
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-medium text-foreground text-sm truncate">
-                  {call.title}
-                </h4>
-                <Badge variant="secondary" className={`text-xs ${getStatusColor(call.status)} flex items-center gap-1`}>
-                  {getStatusIcon(call.status)}
-                  {call.status}
-                </Badge>
+        {calls.map(call => (
+          <div key={call.id} className="space-y-2">
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-event-bg hover:bg-muted transition-colors">
+              <Avatar className="w-8 h-8 bg-primary flex-shrink-0">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-medium">
+                  A
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-medium text-foreground text-sm truncate">
+                    {call.title}
+                  </h4>
+                  <Badge variant="secondary" className={`text-xs ${getStatusColor(call.status)} flex items-center gap-1`}>
+                    {getStatusIcon(call.status)}
+                    {call.status}
+                  </Badge>
+                </div>
+                
+                <p className="text-xs text-muted-foreground mb-1">{call.contact}</p>
+                
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {call.date}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {call.time}
+                  </div>
+                  {call.duration && (
+                    <span className="text-xs">
+                      {call.duration}
+                    </span>
+                  )}
+                </div>
               </div>
               
-              <p className="text-xs text-muted-foreground mb-1">{call.contact}</p>
-              
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {call.date}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {call.time}
-                </div>
-                {call.duration && (
-                  <span className="text-xs">
-                    {call.duration}
-                  </span>
+              <div className="flex gap-1">
+                {call.transcript && call.status === 'completed' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => toggleTranscript(call.id)}
+                    className="text-xs px-2 py-1 h-auto"
+                  >
+                    {expandedCall === call.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  </Button>
+                )}
+                
+                {call.status === 'scheduled' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => cancelCall(call.id)}
+                    className="text-xs px-2 py-1 h-auto text-destructive hover:text-destructive"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 )}
               </div>
             </div>
             
-            {call.transcript && call.status === 'completed' && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onViewTranscript?.(call)}
-                className="text-xs px-2 py-1 h-auto"
-              >
-                View
-              </Button>
+            {expandedCall === call.id && call.transcript && (
+              <div className="ml-11 p-3 rounded-lg bg-muted text-sm text-muted-foreground">
+                <p className="font-medium text-foreground mb-2">Call Transcript:</p>
+                <p>{call.transcript}</p>
+              </div>
             )}
           </div>
         ))}
